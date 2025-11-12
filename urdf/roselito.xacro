@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Description of the RosBot3 robot.
+
+  Author: Helio Perroni Filho
+-->
+
+<robot name="roselito" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find roselito_description)/urdf/ugv02.xacro"/>
+
+  <xacro:property name="overall_height_with_lidar" value="${141.0 * M}"/>
+  <xacro:property name="overall_height_with_camera" value="${197.0 * M}"/>
+
+  <!--
+    Rosbot3 Lidar Properties
+    RosBot3 Lidar (Rosbot3 Pro Lidar is different)
+    https://www.slamtec.com/en/C1/Spec
+  -->
+  <xacro:property name="lidar_side" value="${55.6 * M}"/>
+  <xacro:property name="lidar_total_height" value="${overall_height_with_lidar - overall_height}"/>
+  <xacro:property name="lidar_base_height" value="${lidar_total_height * 0.3}"/>
+  <xacro:property name="lidar_height" value="${lidar_total_height * 0.7}"/>
+  <xacro:property name="lidar_radius" value="${lidar_side * 0.4}"/>
+
+  <!-- 
+    Rosbot3 Camera Properties
+    Rosbot3 Camera (Rosbot3 Pro Camera is different)
+    https://shop.luxonis.com/products/oak-d-lite-1?variant=42583102456031
+  -->
+  <xacro:property name="camera_length" value="${91.0 * M}"/>
+  <xacro:property name="camera_heigth" value="${28.0 * M}"/>
+  <xacro:property name="camera_thickness" value="${17.5 * M}"/>
+
+  <xacro:property name="camera_square_base_side" value="${5.0 * M}"/>
+  <xacro:property name="camera_square_base_thickness" value="${1.0 * M}"/>
+  <!--
+    Value calculated considering heigths with and without camera and a 30° angle starting from the base 
+    Calculus -> (overall_height_with_camera-overall_height-camera_height*0.5 - camera_square_base_thickness)/ (cos(30°))
+
+  -->
+  <xacro:property name="camera_square_stem_length" value="${(overall_height_with_camera - overall_height - camera_heigth * 0.5 - camera_square_base_thickness ) * (2/sqrt(3)) }"/>
+
+  <!--
+    Wifi Antenna Properties
+  -->
+  <!-- Scaling Wifi Antenna by 1.2-->
+  <xacro:property name="wifi_antenna_length" value="${ ((overall_height_with_camera - overall_height)*0.5) *1.2}"/>
+  <xacro:property name="wifi_antenna_radius" value="${3 * M}"/>
+  <xacro:property name="wifi_antenna_distance_x_offset_from_camera" value="${80 * M}"/>
+  <xacro:property name="wifi_antenna_distance_z_offset_from_camera" value="${overall_height_with_camera - overall_height - camera_heigth *0.5 }"/>
+
+  <!-- 
+    RosBot3 Lidar (Rosbot3 Pro Lidar is different)
+    https://www.slamtec.com/en/C1/Spec
+
+    Lidar cilinder shape is arbitrary, since Slamtec only gives a 'box-like' shape dimensions
+    It only needs to respect the max lidar height (lidar_base_height + lidar_height = max_height),
+    and the radius need to be less than 'lidar_side'
+    The 'lidar_base' height needs to be less than the laser link height
+  -->
+  <xacro:solid_block
+    name="lidar_base"
+    size_x="${lidar_side}"
+    size_y="${lidar_side}"
+    size_z="${lidar_base_height}"
+  />
+
+  <xacro:joint_fixed
+    parent="fenders_top"
+    child="lidar_base"
+    z="${(fender_thickness + lidar_base_height) * 0.5}"
+  />
+
+  <xacro:solid_cylinder
+    name="lidar"
+    length="${lidar_height}"
+    radius="${lidar_side * 0.4}"
+  />
+
+  <xacro:joint_fixed
+    parent="lidar_base"
+    child="lidar"
+    z="${(lidar_height + lidar_base_height) * 0.5}"
+  />
+
+  <link name="laser"/>
+  <xacro:joint_fixed
+    parent="lidar_base"
+    child="laser"
+    z="${lidar_base_height + lidar_height * 0.5}"
+  />
+
+  <!-- 
+    Rosbot3 Camera (Rosbot3 Pro Camera is different)
+    https://shop.luxonis.com/products/oak-d-lite-1?variant=42583102456031
+
+    Camera Base is arbitrary, made equal as much as possible to the model, without making too much complex TFs
+  -->
+
+  <!-- 
+    Camera base macro, since it has two different fixation rods
+  -->
+  <xacro:macro
+    name="camera_base"
+    params="position"
+  > 
+  
+ <xacro:solid_block
+    name="camera_up_${position}_stem"
+    size_x="${camera_square_base_side * 0.5}"
+    size_y="${camera_square_base_side * 0.5}"
+    size_z="${0.5 * lidar_side - camera_thickness }"
+    pitch="${90.0 * DEG}"
+  />
+
+  <xacro:solid_block
+    name="camera_down_${position}_stem"
+    size_x="${camera_square_base_side * 0.5}"
+    size_y="${camera_square_base_side * 0.5}"
+    size_z="${camera_square_stem_length}"
+    pitch="${30.0 * DEG}"
+  />
+
+  <xacro:solid_block
+    name="camera_${position}_square_base"
+    size_x="${camera_square_base_side}"
+    size_y="${camera_square_base_side}"
+    size_z="${camera_square_base_thickness}"
+    yaw="${45 * DEG}"
+  />
+
+
+  <xacro:joint_fixed
+    parent="camera_up_${position}_stem"
+    child="camera_down_${position}_stem"
+    x="${-0.5 * (camera_square_base_side* 0.5 + 0.5 * lidar_side - camera_thickness + camera_square_stem_length * 0.5) + camera_square_base_side* 0.5}"
+    z="${-0.5 * (camera_square_stem_length * (sqrt(3)/2)- camera_square_base_side * 0.5)}"
+  />
+
+  <xacro:joint_fixed
+    parent="camera_down_${position}_stem"
+    child="camera_${position}_square_base"
+    x="${-0.5 * (camera_square_stem_length*0.5)}"
+    z="${-0.5 * (camera_square_stem_length *(sqrt(3)/2) + camera_square_base_thickness)}"
+  />
+  </xacro:macro>
+
+  <xacro:solid_block
+    name="camera"
+    size_x="${camera_thickness}"
+    size_y="${camera_length}"
+    size_z="${camera_heigth}"
+  />
+  <xacro:joint_fixed
+    parent="lidar"
+    child="camera"
+    z="${0.5 * (lidar_height-camera_heigth) + overall_height_with_camera - overall_height_with_lidar}"
+    x="${-0.5 * camera_thickness}"
+  />
+  <link name="camera_front"/>
+  <xacro:joint_fixed
+    parent="camera"
+    child="camera_front"
+    x="${0.5 * camera_thickness}"
+  />
+
+  <xacro:camera_base position="left"/>
+  <xacro:camera_base position="right"/>
+
+  <xacro:joint_fixed
+    parent="camera"
+    child="camera_up_left_stem"
+    x="${-0.5 * (camera_thickness + 0.5 * lidar_side - camera_thickness)}"
+    y="${0.5 * (0.5 * camera_length)}"
+  />
+
+  <xacro:joint_fixed
+    parent="camera"
+    child="camera_up_right_stem"
+    x="${-0.5 * (camera_thickness + 0.5 * lidar_side - camera_thickness)}"
+    y="${-0.5 * (0.5 * camera_length)}"
+  />
+
+  <!-- 
+    Wifi Antenna
+  -->
+  <xacro:solid_cylinder
+    name="wifi_antenna"
+    length="${wifi_antenna_length}"
+    radius="${wifi_antenna_radius}"
+  />
+
+  <xacro:joint_fixed
+    parent="camera"
+    child="wifi_antenna"
+    x="${-(0.5 * camera_thickness + wifi_antenna_distance_x_offset_from_camera - wifi_antenna_radius) }"
+    y="${0.5 * camera_length}"
+    z="${0.5 * wifi_antenna_length - wifi_antenna_distance_z_offset_from_camera}"
+  />
+
+
+</robot>
