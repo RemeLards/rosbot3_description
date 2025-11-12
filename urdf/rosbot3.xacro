@@ -3,7 +3,7 @@
 <!--
   Description of the RosBot3 robot.
 
-  Author: Helio Perroni Filho
+  Author: Rafael Fracalossi Freitas
 -->
 
 <robot name="rosbot3" xmlns:xacro="http://www.ros.org/wiki/xacro">
