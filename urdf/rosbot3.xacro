@@ -185,6 +185,10 @@
   <!-- 
     Wifi Antenna
   -->
+    <!--
+      Antenna being detected as a object by lidar
+      Can be disabled, but since this is not beeing accounted for, it is not a problem
+    -->
   <xacro:solid_cylinder
     name="wifi_antenna"
     length="${wifi_antenna_length}"
